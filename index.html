@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>مساعد لعبة 2048</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    td {
+      width: 60px;
+      height: 60px;
+      border: 2px solid #ccc;
+      background: #fff;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      height: 100%;
+      font-size: 20px;
+      text-align: center;
+      border: none;
+      outline: none;
+      background: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<h1>مساعد لعبة 2048</h1>
+
+<table id="grid"></table>
+
+<button onclick="findBestMove()">احسب أفضل حركة</button>
+<div id="result"></div>
+
+<script>
+  const size = 4;
+  const grid = document.getElementById("grid");
+
+  // إنشاء الجدول
+  for (let i = 0; i < size; i++) {
+    const row = document.createElement("tr");
+    for (let j = 0; j < size; j++) {
+      const cell = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.placeholder = "";
+      cell.appendChild(input);
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  }
+
+  function getBoard() {
+    const board = [];
+    for (let i = 0; i < size; i++) {
+      const row = [];
+      for (let j = 0; j < size; j++) {
+        const val = parseInt(grid.rows[i].cells[j].firstChild.value);
+        row.push(isNaN(val) ? 0 : val);
+      }
+      board.push(row);
+    }
+    return board;
+  }
+
+  function slideLeft(row) {
+    let arr = row.filter(val => val !== 0);
+    let score = 0;
+    for (let i = 0; i < arr.length - 1; i++) {
+      if (arr[i] === arr[i + 1]) {
+        arr[i] *= 2;
+        score += arr[i];
+        arr.splice(i + 1, 1);
+      }
+    }
+    while (arr.length < size) arr.push(0);
+    return { row: arr, score };
+  }
+
+  function move(board, dir) {
+    let newBoard = board.map(r => r.slice());
+    let totalScore = 0;
+
+    if (dir === "left") {
+      for (let i = 0; i < size; i++) {
+        const { row, score } = slideLeft(newBoard[i]);
+        newBoard[i] = row;
+        totalScore += score;
+      }
+    }
+
+    if (dir === "right") {
+      for (let i = 0; i < size; i++) {
+        const reversed = newBoard[i].slice().reverse();
+        const { row, score } = slideLeft(reversed);
+        newBoard[i] = row.reverse();
+        totalScore += score;
+      }
+    }
+
+    if (dir === "up" || dir === "down") {
+      for (let j = 0; j < size; j++) {
+        let col = [];
+        for (let i = 0; i < size; i++) col.push(newBoard[i][j]);
+        if (dir === "down") col.reverse();
+        const { row, score } = slideLeft(col);
+        if (dir === "down") row.reverse();
+        for (let i = 0; i < size; i++) newBoard[i][j] = row[i];
+        totalScore += score;
+      }
+    }
+
+    return { board: newBoard, score: totalScore };
+  }
+
+  function isBoardChanged(oldB, newB) {
+    for (let i = 0; i < size; i++)
+      for (let j = 0; j < size; j++)
+        if (oldB[i][j] !== newB[i][j]) return true;
+    return false;
+  }
+
+  function findBestMove() {
+    const board = getBoard();
+    const directions = ["left", "right", "up", "down"];
+    let best = null;
+
+    for (let dir of directions) {
+      const { board: moved, score } = move(board, dir);
+      if (isBoardChanged(board, moved)) {
+        if (!best || score > best.score) {
+          best = { dir, score };
+        }
+      }
+    }
+
+    document.getElementById("result").innerText = best ?
+      `✅ أفضل حركة: ${translate(best.dir)} (سكور متوقع: ${best.score})` :
+      "❌ مفيش حركة ممكنة حالياً";
+  }
+
+  function translate(dir) {
+    return {
+      left: "⬅️ شمال",
+      right: "➡️ يمين",
+      up: "⬆️ فوق",
+      down: "⬇️ تحت"
+    }[dir];
+  }
+</script>
+
+</body>
+</html>
